@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Trading Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom styles for better aesthetics */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f4f8;
+            color: #334155;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-group label {
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .input-group input[type="date"],
+        .input-group input[type="text"],
+        .input-group input[type="file"],
+        .input-group input[type="number"] { /* Added style for number input */
+            padding: 10px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .input-group input[type="date"]:focus,
+        .input-group input[type="text"]:focus,
+        .input-group input[type="file"]:focus,
+        .input-group input[type="number"]:focus { /* Added style for number input */
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: #ffffff;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+            text-align: center;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .status-box {
+            background-color: #e0f2fe;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .status-item {
+            text-align: center;
+            flex: 1 1 200px; /* Allows items to wrap */
+        }
+        .status-item span {
+            display: block;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .status-item strong {
+            font-size: 1.2rem;
+            color: #1e40af;
+        }
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            overflow: hidden; /* Ensures rounded corners apply to content */
+        }
+        .transaction-table th,
+        .transaction-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .transaction-table th {
+            background-color: #e2e8f0;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+        .transaction-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .transaction-table tbody tr:hover {
+            background-color: #f0f4f8;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 1.5rem;
+            display: none; /* Hidden by default */
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fefcbf; /* Yellow for warning */
+            color: #92400e;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            display: none; /* Hidden by default */
+            max-width: 300px;
+            text-align: center;
+        }
+        .message-box.error {
+            background-color: #fee2e2; /* Red for error */
+            color: #991b1b;
+        }
+        .message-box.success {
+            background-color: #d1fae5; /* Green for success */
+            color: #065f46;
+        }
+        .message-box button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #92400e;
+            cursor: pointer;
+            position: absolute;
+            top: 5px;
+            right: 10px;
+        }
+        .message-box.error button {
+            color: #991b1b;
+        }
+        .results-summary {
+            background-color: #f0fdf4;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 15px;
+        }
+        .results-item {
+            text-align: center;
+            flex: 1 1 200px;
+        }
+        .results-item span {
+            display: block;
+            font-size: 0.9rem;
+            color: #34d399;
+        }
+        .results-item strong {
+            font-size: 1.2rem;
+            color: #065f46;
+        }
+        /* Style for chart container */
+        .chart-container {
+            position: relative; /* For responsive canvas */
+            height: 600px; /* Increased height for the chart */
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .input-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .status-box, .results-summary {
+                flex-direction: column;
+                align-items: center;
+            }
+            .status-item, .results-item {
+                width: 100%;
+            }
+            .transaction-table th,
+            .transaction-table td {
+                font-size: 0.8rem;
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Stock Trading Simulator</h1>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-blue-50 rounded-lg shadow-sm input-section">
+            <div class="input-group flex-1">
+                <label for="stockName">Stock Name:</label>
+                <input type="text" id="stockName" class="rounded-lg p-2 border border-gray-300 w-full" value="">
+            </div>
+            <div class="input-group flex-1">
+                <label for="csvFileInput">Upload CSV File:</label>
+                <input type="file" id="csvFileInput" accept=".csv" class="rounded-lg p-2 border border-gray-300 w-full" required>
+            </div>
+            <div class="input-group flex-1">
+                <label for="initialPrinciple">Initial Principle (₹):</label>
+                <input type="number" id="initialPrinciple" class="rounded-lg p-2 border border-gray-300 w-full" value="100000" min="1000">
+            </div>
+            <div class="input-group flex-1">
+                <label for="startDate">Start Date:</label>
+                <input type="date" id="startDate" class="rounded-lg p-2 border border-gray-300 w-full">
+            </div>
+            <div class="input-group flex-1">
+                <label for="endDate">End Date:</label>
+                <input type="date" id="endDate" class="rounded-lg p-2 border border-gray-300 w-full">
+            </div>
+            <button id="runSimulationBtn" class="btn-primary mt-auto">Run Simulation</button>
+        </div>
+
+        <div class="status-box mb-6">
+            <div class="status-item">
+                <span>Company Name:</span>
+                <strong id="companyNameDisplay">N/A</strong>
+            </div>
+            <div class="status-item">
+                <span>Current Principle:</span>
+                <strong id="currentPrincipleDisplay">₹ 100,000.00</strong>
+            </div>
+            <div class="status-item">
+                <span>Holding Stock:</span>
+                <strong id="holdingStatusDisplay" class="text-red-600">No</strong>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 p-4 bg-gray-100 rounded-t-lg">Transaction Log</h2>
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Price (₹)</th>
+                        <th>Quantity</th>
+                        <th>Value (₹)</th>
+                        <th>Gain/Loss (₹)</th>
+                        <th>Current Principle (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionTableBody">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="chart-container mt-6 p-4 bg-white rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Price and Indicator Chart</h2>
+            <canvas id="stockChart"></canvas>
+        </div>
+
+        <div id="resultsSummary" class="results-summary hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 w-full text-center">Simulation Results</h2>
+            <div class="results-item">
+                <span>Initial Principle:</span>
+                <strong id="initialPrincipleResult">₹ 0.00</strong>
+            </div>
+            <div class="results-item">
+                <span>Final Principle:</span>
+                <strong id="finalPrincipleResult">₹ 0.00</strong>
+            </div>
+            <div class="results-item">
+                <span>Total Gain/Loss:</span>
+                <strong id="totalGainLossResult">₹ 0.00</strong>
+            </div>
+            <div class="results-item">
+                <span>Net Return (%):</span>
+                <strong id="netReturnResult">0.00%</strong>
+            </div>
+            <div class="results-item">
+                <span>Total Transactions:</span>
+                <strong id="totalTransactionsResult">0</strong>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        Simulating... Please wait.
+    </div>
+
+    <div id="messageBox" class="message-box">
+        <span id="messageText"></span>
+        <button onclick="document.getElementById('messageBox').style.display = 'none';">&times;</button>
+    </div>
+
+    <script>
+        const stockNameInput = document.getElementById('stockName');
+        const csvFileInput = document.getElementById('csvFileInput');
+        const initialPrincipleInput = document.getElementById('initialPrinciple');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const runSimulationBtn = document.getElementById('runSimulationBtn');
+        const companyNameDisplay = document.getElementById('companyNameDisplay');
+        const currentPrincipleDisplay = document.getElementById('currentPrincipleDisplay');
+        const holdingStatusDisplay = document.getElementById('holdingStatusDisplay');
+        const transactionTableBody = document.getElementById('transactionTableBody');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const resultsSummary = document.getElementById('resultsSummary');
+        const initialPrincipleResult = document.getElementById('initialPrincipleResult');
+        const finalPrincipleResult = document.getElementById('finalPrincipleResult');
+        const totalGainLossResult = document.getElementById('totalGainLossResult');
+        const netReturnResult = document.getElementById('netReturnResult');
+        const totalTransactionsResult = document.getElementById('totalTransactionsResult');
+        
+        // Chart Elements
+        const stockChartCanvas = document.getElementById('stockChart');
+        let myChart = null; // To store the chart instance for later destruction/update
+
+        let uploadedStockData = null; // To store parsed CSV data with original and MA data
+
+        const showMessage = (message, type = "warning") => {
+            messageText.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 5000); // Hide after 5 seconds
+        };
+
+        // Function to parse date strings in "DD-MM-YYYY HH:MM:SS" format
+        const parseDateString = (dateString) => {
+            const [datePart] = dateString.split(' '); // Only take the date part
+            const [day, month, year] = datePart.split('-').map(Number);
+            return new Date(year, month - 1, day); // Month is 0-indexed in JS Date
+        };
+
+        const parseCSV = (csvText) => {
+            const lines = csvText.trim().split('\n');
+            return lines.map(line => {
+                // Expects Date, Open, High, Low, Close, Volume
+                const [DateStr, Open, High, Low, Close, Volume] = line.split(',');
+                return {
+                    Date: parseDateString(DateStr),
+                    Open: parseFloat(Open),
+                    High: parseFloat(High),
+                    Low: parseFloat(Low),
+                    Close: parseFloat(Close),
+                    Volume: parseInt(Volume)
+                };
+            }).sort((a, b) => a.Date - b.Date); // Sort by date to ensure chronological order
+        };
+
+        // Function to calculate Moving Averages
+        const calculateMAs = (data, periods) => {
+            const maData = data.map(d => ({ ...d })); // Clone data to add MAs
+            
+            for (const period of periods) {
+                for (let i = 0; i < maData.length; i++) {
+                    if (i >= period - 1) { // Enough data points for this MA
+                        let sum = 0;
+                        for (let j = 0; j < period; j++) {
+                            sum += maData[i - j].Close;
+                        }
+                        maData[i][`MA${period}`] = sum / period;
+                    } else {
+                        maData[i][`MA${period}`] = NaN; // Not enough data for full MA period
+                    }
+                }
+            }
+            return maData;
+        };
+
+        const updateUI = () => {
+            companyNameDisplay.textContent = stockNameInput.value || 'N/A';
+            currentPrincipleDisplay.textContent = `₹ ${parseFloat(initialPrincipleInput.value).toFixed(2)}`;
+        };
+
+        // Function to draw the stock chart with updated colors and line thicknesses
+        const drawChart = (data) => {
+            if (myChart) {
+                myChart.destroy(); // Destroy previous chart instance if exists
+            }
+
+            if (data.length === 0) {
+                // No data to draw, optionally hide chart container or display message
+                return;
+            }
+
+            const dates = data.map(d => d.Date.toISOString().split('T')[0]); // YYYY-MM-DD
+            const closePrices = data.map(d => d.Close);
+            const ma20Data = data.map(d => d.MA20);
+            const ma30Data = data.map(d => d.MA30);
+            const ma50Data = data.map(d => d.MA50);
+
+            myChart = new Chart(stockChartCanvas, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Close Price',
+                            data: closePrices,
+                            borderColor: 'rgb(0, 0, 255)', // Blue for price
+                            tension: 0.1,
+                            fill: false,
+                            pointRadius: 0, // Hide points for cleaner lines
+                            borderWidth: 2 // Moderate thickness
+                        },
+                        {
+                            label: 'MA20', // Low MA
+                            data: ma20Data,
+                            borderColor: 'rgb(0, 128, 0)', // Green for Low MA
+                            tension: 0.1,
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 1.5 // Thinner
+                        },
+                        {
+                            label: 'MA30',
+                            data: ma30Data,
+                            borderColor: 'rgb(54, 162, 235)', // A shade of blue for MA30
+                            tension: 0.1,
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 2 // Moderate thickness
+                        },
+                        {
+                            label: 'MA50', // High MA
+                            data: ma50Data,
+                            borderColor: 'rgb(255, 0, 0)', // Red for High MA
+                            tension: 0.1,
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 3 // Thicker
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allow canvas to resize freely within container
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${stockNameInput.value} Price and Moving Averages`
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += `₹ ${context.parsed.y.toFixed(2)}`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Price (₹)'
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+
+       function runSimulation() {
+    if (!uploadedStockData || uploadedStockData.length < 11) {
+        showMessage("Please upload a valid CSV file with at least 11 rows.", "error");
+        return;
+    }
+
+    loadingOverlay.style.display = 'flex';
+    transactionTableBody.innerHTML = '';
+    resultsSummary.classList.add('hidden');
+
+    // Filter data by date range
+    const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+    const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+    const filteredData = uploadedStockData.filter(data => {
+        const dataDateStr = data.Date.toISOString().split('T')[0];
+        const startDateStr = startDate ? startDate.toISOString().split('T')[0] : '';
+        const endDateStr = endDate ? endDate.toISOString().split('T')[0] : '';
+        return (!startDate || dataDateStr >= startDateStr) && (!endDate || dataDateStr <= endDateStr);
+    });
+
+    // Run your unique algorithm
+    const initialPrinciple = parseFloat(initialPrincipleInput.value);
+    const result = dynamicVolatilityProfit(filteredData, initialPrinciple);
+
+    // Update transaction log
+    result.transactions.forEach(tx => {
+        const gainLoss = tx.action.startsWith("SELL") ? (tx.value - (tx.qty * (tx.action === "SELL (End)" ? tx.price : tx.price))) : 0;
+        addTransaction(
+            tx.date,
+            tx.action,
+            tx.price,
+            tx.qty,
+            tx.value,
+            gainLoss,
+            tx.action.startsWith("SELL") ? result.finalPrinciple : initialPrinciple - tx.value
+        );
+    });
+
+    // Update status
+    currentPrincipleDisplay.textContent = `₹ ${result.finalPrinciple.toFixed(2)}`;
+    holdingStatusDisplay.textContent = "No";
+    holdingStatusDisplay.className = 'text-red-600';
+
+    // Draw chart (you can use filteredData)
+    drawChart(filteredData);
+
+    // Show results summary
+    resultsSummary.classList.remove('hidden');
+    initialPrincipleResult.textContent = `₹ ${initialPrinciple.toFixed(2)}`;
+    finalPrincipleResult.textContent = `₹ ${result.finalPrinciple.toFixed(2)}`;
+    totalGainLossResult.textContent = `₹ ${(result.finalPrinciple - initialPrinciple).toFixed(2)}`;
+    totalGainLossResult.className = (result.finalPrinciple - initialPrinciple) >= 0 ? 'text-green-600' : 'text-red-600';
+    netReturnResult.textContent = `${result.netReturnPct.toFixed(2)}%`;
+    netReturnResult.className = result.netReturnPct >= 0 ? 'text-green-600' : 'text-red-600';
+    totalTransactionsResult.textContent = result.transactionCount;
+
+    loadingOverlay.style.display = 'none';
+    showMessage("Simulation completed!", "success");
+}
+        const addTransaction = (date, action, price, quantity, value, gainLoss, currentPrinciple) => {
+            const row = transactionTableBody.insertRow();
+            row.insertCell(0).textContent = date.toISOString().split('T')[0];
+            row.insertCell(1).textContent = action;
+            row.insertCell(2).textContent = price.toFixed(2);
+            row.insertCell(3).textContent = quantity;
+            row.insertCell(4).textContent = value.toFixed(2);
+            const gainLossCell = row.insertCell(5);
+            gainLossCell.textContent = gainLoss.toFixed(2);
+            gainLossCell.className = gainLoss >= 0 ? 'text-green-600' : 'text-red-600';
+            row.insertCell(6).textContent = currentPrinciple.toFixed(2);
+        };
+
+        window.onload = () => {
+            csvFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            uploadedStockData = parseCSV(e.target.result);
+                            if (uploadedStockData.length > 0) {
+                                showMessage(`CSV file "${file.name}" loaded successfully with ${uploadedStockData.length} data points.`, "success");
+                                stockNameInput.value = file.name.replace('.csv', ''); // Pre-fill stock name
+                                companyNameDisplay.textContent = stockNameInput.value;
+                                // Set date range from uploaded data
+                                const firstDate = uploadedStockData[0].Date;
+                                const lastDate = uploadedStockData[uploadedStockData.length - 1].Date;
+                                startDateInput.value = firstDate.toISOString().split('T')[0];
+                                endDateInput.value = lastDate.toISOString().split('T')[0];
+                            } else {
+                                showMessage("CSV file is empty or invalid format.", "error");
+                                uploadedStockData = null;
+                                csvFileInput.value = '';
+                                startDateInput.value = ''; 
+                                endDateInput.value = '';
+                                companyNameDisplay.textContent = 'N/A';
+                                if (myChart) myChart.destroy(); // Destroy chart if data is invalid
+                            }
+                        } catch (error) {
+                            console.error("CSV parsing error:", error);
+                            showMessage(`Error parsing CSV file: ${error.message}. Please ensure it's a valid CSV with Date (DD-MM-YYYY HH:MM:SS), Open, High, Low, Close, Volume.`, "error");
+                            uploadedStockData = null;
+                            csvFileInput.value = '';
+                            startDateInput.value = ''; 
+                            endDateInput.value = '';
+                            companyNameDisplay.textContent = 'N/A';
+                            if (myChart) myChart.destroy(); // Destroy chart on parsing error
+                        }
+                    };
+                    reader.onerror = () => {
+                        showMessage("Error reading file.", "error");
+                        uploadedStockData = null;
+                        csvFileInput.value = '';
+                        startDateInput.value = '';
+                        endDateInput.value = '';
+                        companyNameDisplay.textContent = 'N/A';
+                        if (myChart) myChart.destroy(); // Destroy chart on file read error
+                    };
+                    reader.readAsText(file);
+                } else {
+                    uploadedStockData = null; // No file selected
+                    showMessage("No CSV file selected. Please upload a file to run the simulation.", "warning");
+                    // Clear dates and company name when no file is selected
+                    startDateInput.value = '';
+                    endDateInput.value = '';
+                    companyNameDisplay.textContent = 'N/A';
+                    if (myChart) myChart.destroy(); // Destroy chart if no file is selected
+                }
+            });
+
+            runSimulationBtn.addEventListener('click', runSimulation);
+            updateUI(); // Initial UI render
+        };
+    </script>
+</body>
+</html>
